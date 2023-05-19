@@ -1,0 +1,632 @@
+Ar
+
+#define axisX A0 //Ось Х джойстика, отвечающая за движение вверх и вниз
+#define axisY A1 //Ось Y джойстика, отвечающая за движение влево и вправо
+#define buttion 2 //Кнопка на джойстике
+#define axisX1 A2 //Ось Х джойстика, отвечающая за движение вверх и вниз
+#define axisY1 A3 //Ось Y джойстика, отвечающая за движение влево и вправо
+ 
+void setup() 
+{
+  //Обозначим оси как выходы...
+  pinMode(axisX, INPUT);
+  pinMode(axisY, INPUT);
+ pinMode(axisX1, INPUT);
+  pinMode(axisY1, INPUT);
+  //... а кнопку как выход с подтягивающим резистором
+  pinMode(buttion, INPUT_PULLUP);
+  //Установим соединение с Serial портом
+  Serial.begin(9600);
+}
+ 
+void loop()
+{
+ //Переменные для передачи данных
+ int Y = analogRead(axisY);
+ int X = analogRead(axisX);
+ int Y1 = analogRead(axisY1);
+ int X1 = analogRead(axisX1);
+ int B = digitalRead(buttion);
+  
+//Протокол передачи данных
+ Serial.print(Y);
+ Serial.print(",");
+ Serial.print(X);
+ Serial.print(",");
+ Serial.print(Y1);
+ Serial.print(",");
+ Serial.print(X1);
+ Serial.print(",");
+ Serial.println(B);
+}
+
+
+
+
+
+
+
+
+Proc
+
+
+//Подключаем библиотеку для работы с Serial
+
+import processing.serial.*;
+Serial myPort; 
+
+//Переменные для значений, получаемых с датчика
+
+int reset, axisX, axisY, axisX1, axisY1;
+
+//Переменные движения платформы
+
+int moveX, moveY;
+int moveX1, moveY1;
+
+//Переменные для изменения скорости платформы
+
+int Xspeed = 3;
+int Yspeed = 3;
+
+// Переменные для определения положения и скорости шарика
+
+int nowmove = 0;
+int BallSpeedX = 2;
+int BallSpeedY = 2;
+int BallPosX, BallPosY;
+
+//Переменные для "уничтожения" кирпичей
+
+int[] destroy = new int[7];
+
+//Положение первого кирпича
+
+int brickX = 200;
+int brickY = 370;
+
+//Цвет и "округление" кирпича
+
+color brcol = color(240, 248, 255);
+int round = 20;
+
+//Переменные для вывода счета
+
+int[] ScoreCount = new int[7];
+int score;
+int printscore;
+int fontSize = 36;
+
+//Переменные для определения победы или поражения
+
+int win;
+int lives = 3;
+int lives1 = 3;
+int start = 0;
+
+void setup() 
+{
+  //Определение размера поля
+  
+  size(640, 450);
+  
+  //Протокол
+  
+  String portName = Serial.list()[1];
+  myPort = new Serial(this, portName, 9600);
+  myPort.bufferUntil('\n');
+  
+  //Фигуры без рамки
+  
+  noStroke();
+  
+  // Начальное положение и скорость
+  //платформы и мячика
+  
+  moveX = 15;
+  moveY = width / 2;
+  
+   moveX1 = 620;
+    moveY1 = width / 2 - 60;
+    
+    
+  BallPosX = 50;
+  BallPosY = width / 2 ;
+  Xspeed = 0;
+  Yspeed = 0;  
+  BallSpeedY = 0;
+  BallSpeedX = 0; 
+
+}
+
+//Протокол
+
+void serialEvent(Serial myPort)
+{
+  String inputString = myPort.readStringUntil('\n');
+  inputString = trim(inputString);
+
+  
+  int axises[] = int(split(inputString, ','));
+  if(axises.length == 5)
+  {
+    axisY = axises[0];
+    axisX = axises[1];
+    axisY1 = axises[2];
+    axisX1 = axises[3]; 
+    reset = axises[4];
+  }
+}
+
+
+//В этом методе вызываются методы игры
+//Я не буду описывать как реализовать тот или иной метод -
+//в них не сложно разобраться
+//Я лишь покажу, какую функцию они исполняют
+
+void draw()
+{
+  //Цвет фона в grb или html, по умолчанию - черный
+  
+  background(#898383);
+  
+  //Цвет заполнения в grb или html, по умолчанию - белый
+  
+  fill(#F0F8FF);
+ 
+ //Код игры 
+ 
+  StartScreeen();
+  if(start == 1)
+  {
+  Start();
+  Score();
+  Brick();
+  Ball();
+  Joystick();
+  Joystick1();
+  Reset();
+  Win();
+  Dead();
+  }
+  
+  //Управление платформой с пмощью джойстика
+  
+}
+void Joystick()
+{
+  if(axisY > 1000)
+  {
+    if(moveX > 0)
+    {
+    moveX -=  Xspeed;
+    }
+  }
+  else if(axisY < 10)
+  {
+    if(moveX < 50)
+    {
+    moveX += Xspeed;
+    }
+  } 
+  
+  if(axisX > 1000)
+  {
+    if(moveY < 370)
+    {
+      moveY += Yspeed;
+    }
+  }
+   else if(axisX < 10)
+   {
+     if(moveY >= 5)
+     {
+       moveY -= Yspeed;
+     }
+   }
+   rect(moveX, moveY, 15, 80, 10);
+}
+
+void Joystick1()
+{
+  if(axisY1 > 1000)
+  {
+    if(moveX1 > 580)
+    {
+    moveX1 -=  Xspeed;
+    }
+  }
+  else if(axisY1 < 10)
+  {
+    if(moveX1 < 630)
+    {
+    moveX1 += Xspeed;
+    }
+  } 
+  
+  if(axisX1 > 1000)
+  {
+    if(moveY1 < 370)
+    {
+      moveY1 += Yspeed;
+    }
+  }
+   else if(axisX1 < 10)
+   {
+     if(moveY1 >= 5)
+     {
+       moveY1 -= Yspeed;
+     }
+   }
+   rect(moveX1, moveY1, 15, 80, 10);
+}
+//Описание движения шарика при столкновении с краем, платформой
+// вызов метода уничтожения кирпичей при касании
+
+void Ball()
+{
+  /*if(BallPosX >= 630 || BallPosX <= 0)
+  {
+    BallSpeedX  =- BallSpeedX ;
+  } 
+  if(BallPosY >= 440)
+  {
+    BallSpeedY =- BallSpeedY;
+  }
+  */
+  if(BallPosY >= 440 || BallPosY <= 5)
+  {
+    BallSpeedY  =- BallSpeedY ;
+  } 
+ /* if(BallPosX >= 630)
+  {
+    BallSpeedX =- BallSpeedX;
+  }.*/
+  
+  
+  if(BallPosX >= moveX && BallPosX <= moveX + 15 && BallPosY >= moveY && BallPosY <= moveY + 80)
+  {
+     BallSpeedX =- BallSpeedX;
+     
+  }
+  
+    
+  if(BallPosX >= moveX1 && BallPosX <= moveX1 + 15 && BallPosY >= moveY1 && BallPosY <= moveY1 + 80)
+  {
+     BallSpeedX =- BallSpeedX;
+     
+  }
+  /*
+  if(BallPosX >= brickX && BallPosX <= brickX + 30  && BallPosY >= brickY && BallPosY <= brickY + 30)
+  {
+   destroy[0] = 1;
+  }
+  
+   if(BallPosX >= brickX + 60 && BallPosX <= brickX + 90  && BallPosY >= brickY && BallPosY <= brickY + 30)
+  {
+   destroy[1] = 1;
+  }
+  
+   if(BallPosX >= brickX + 120 && BallPosX <= brickX + 150  && BallPosY >= brickY && BallPosY <= brickY + 30)
+  {
+   destroy[2] = 1;
+  }
+  
+   if(BallPosX >= brickX + 175 && BallPosX <= brickX + 225  && BallPosY >= brickY && BallPosY - 5 <= brickY + 35)
+  {
+   destroy[3] = 1;
+  }
+  
+    if(BallPosX >= brickX + 60 && BallPosX <= brickX + 90  && BallPosY >= brickY - 60 && BallPosY <= brickY - 30)
+  {
+   destroy[4] = 1;
+  }
+  
+   if(BallPosX >= brickX + 120 && BallPosX <= brickX + 150  && BallPosY >= brickY - 120 && BallPosY <= brickY - 60)
+  {
+   destroy[5] = 1;
+  }
+  
+   if(BallPosX >= brickX + 90 && BallPosX <= brickX + 120  && BallPosY >= brickY - 120 && BallPosY <= brickY - 60)
+  {
+   destroy[6] = 1;
+  }
+  */
+  
+  BallPosX += BallSpeedX;
+  BallPosY += BallSpeedY;
+  
+   rect(BallPosX, BallPosY, 20, 20, 30);
+}
+
+//Описание кирпичей и уничтожение, при вызове
+
+void Brick()  
+{
+  /*
+  if(destroy[0] == 1 && ScoreCount[0] == 0)
+  {
+    score += 1;
+    printscore += 100;
+    ScoreCount[0] = 1;
+    fill(#898383);
+    rect(brickX, brickY, 30, 30, round);
+    fill(#FFFFFF);
+  }
+  else if(destroy[0] == 0)
+  {
+  fill(brcol);
+  rect(brickX, brickY, 30, 30, round);
+  fill(#F0F8FF);
+  }
+    if(destroy[1] == 1 && ScoreCount[1] == 0)
+  {
+    score += 1;
+    printscore += 100;
+    ScoreCount[1] = 1;
+    fill(#898383);
+    rect(brickX + 60, brickY, 30, 30, round);
+    fill(#ffffff);
+  }
+  else if(destroy[1] == 0)
+  {
+  fill(brcol);
+  rect(brickX + 60, brickY, 30, 30, round);
+  fill(#F0F8FF);
+  }
+  
+  if(destroy[2] == 1 && ScoreCount[2] == 0)
+  {
+    score += 1;
+    printscore += 100;
+    ScoreCount[2] = 1;
+    fill(#898383);
+    rect(brickX + 120, brickY, 30, 30, round);
+    fill(#ffffff);
+  }
+  else if(destroy[2] == 0)
+  {
+  fill(brcol);
+  rect(brickX + 120, brickY, 30, 30, round);
+  fill(#F0F8FF);
+  }
+  
+  if(destroy[3] == 1 && ScoreCount[3] == 0)
+  {
+    score += 1;
+    printscore += 100;
+    ScoreCount[3] = 1;
+    fill(#898383);
+    rect(brickX + 180, brickY, 30, 30, round);
+    fill(#ffffff);
+  }
+  else if(destroy[3] == 0)
+  {
+  fill(brcol);
+  rect(brickX + 180, brickY, 30, 30, round);
+  fill(#F0F8FF);
+  }
+  
+  if(destroy[4] == 1 && ScoreCount[4] == 0)
+  {
+    score += 1;
+    printscore += 100;
+    ScoreCount[4] = 1;
+    fill(#898383);
+    rect(brickX + 60,brickY - 60, 30, 30, round);
+    fill(#ffffff);
+  }
+  else if(destroy[4] == 0)
+  {
+  fill(brcol);
+  rect(brickX + 60,brickY - 60, 30, 30, round);
+  fill(#F0F8FF);
+  }
+  
+  if(destroy[5] == 1 && ScoreCount[5] == 0)
+  {
+    score += 1;
+    printscore += 100;
+    ScoreCount[5] = 1;
+    fill(#898383);
+    rect(brickX + 120, brickY - 60, 30, 30, round);
+    fill(#ffffff);
+  }
+  else if(destroy[5] == 0)
+  {
+  fill(brcol);
+  rect(brickX + 120, brickY - 60, 30, 30, round);
+  fill(#F0F8FF);
+  }
+  
+  if(destroy[6] == 1 && ScoreCount[6] == 0)
+  {
+    score += 1;
+    printscore += 100;
+    ScoreCount[6] = 1;
+    fill(#898383);
+    rect(brickX + 90, brickY - 120, 30, 30, round);
+    fill(#F0F8FF);
+  }
+  else if(destroy[6] == 0)
+  {
+  fill(brcol);
+  rect(brickX + 90, brickY - 120, 30, 30, round);
+  fill(#F0F8FF);
+  }
+  */
+}
+
+//Подсчет очков и вывод их на экран
+
+void Score()
+{
+  PFont myFont = createFont(PFont.list () [6], fontSize);
+  textFont(myFont);
+ /* text(printscore, fontSize, fontSize); */
+  text(lives, fontSize, fontSize);
+  text(lives1, width-fontSize, fontSize);
+}
+
+//Условия победы
+
+void Win()
+{
+  if(score == 7)
+  {
+    win = 1;
+    BallSpeedY = 0;
+    BallSpeedX = 0;   
+    
+    clear();
+    background(#898383);
+    text("You win!", 250, height /2);
+  }
+}
+
+//Рестарт игры в случае победы или поражения
+
+void Reset()
+{
+  if( reset == 0 && win == 1 || reset == 0 && lives == 0 && lives1 == 0 )
+  {
+    moveX = 15;
+    moveY = width / 2 - 60;
+    
+      moveX1 = 620;
+    moveY1 = width / 2 - 60;
+    
+    BallPosX =50; 
+    BallPosY = width / 2 - 40;
+    
+    score = 0;
+    printscore = 0;
+    for(int val = 0; val < 7; val++)
+    {
+      ScoreCount[val] = 0;
+      destroy[val] = 0;
+    }
+    
+    BallSpeedY = 0;
+    BallSpeedX = 0;  
+    Xspeed = 0;
+    Yspeed = 0;
+    win = 0; 
+    lives = 3;
+    lives1 = 3;
+    nowmove = 0;
+    Start();
+  }
+}
+
+//Определение смерти и отъема жизней
+//или поражения, если жизни закончились
+
+void Dead()
+{
+  if(BallPosX <= 0 && lives != 0)
+  {
+    lives -= 1;
+    
+    BallSpeedY = 0;
+    BallSpeedX = 0; 
+    
+    moveX = 15;
+    moveY = width / 2 - 60;
+    
+     moveX1 = 620;
+    moveY1 = width / 2 - 60;
+    
+    BallPosX = 50;
+    BallPosY = width / 2 - 40;
+    nowmove = 0;
+    Start();
+ 
+  }
+    if(BallPosX >= 640 && lives1 != 0)
+  {
+    lives1 -= 1;
+    
+    BallSpeedY = 0;
+    BallSpeedX = 0; 
+    
+    moveX = 15;
+    moveY = width / 2 - 60;
+    
+     moveX1 = 620;
+    moveY1 = width / 2 - 60;
+    
+    BallPosX = 50;
+    BallPosY = width / 2 - 40;
+    nowmove = 0;
+    Start();
+ 
+  }
+  
+   if(lives == 0)
+   {
+     clear();
+     text("Game over! Выеграл 2 игрок ", 250-130, height /2);
+     
+     
+    BallPosX = width / 2 - 40;
+    BallPosY = 50;
+    Xspeed = 0;
+    Yspeed = 0;
+     
+    BallSpeedY = 0;
+    BallSpeedX = 0; 
+    Reset();
+   }
+     if(lives1 == 0)
+   {
+     clear();
+     text("Game over! Выеграл 1 игрок ", 250-130,  height /2);
+     
+     
+    BallPosX = width / 2 - 40;
+    BallPosY = 50;
+    Xspeed = 0;
+    Yspeed = 0;
+     
+    BallSpeedY = 0;
+    BallSpeedX = 0; 
+    Reset();
+   }
+  
+}
+
+//Старт игры по нажати кнопки
+
+void Start()
+{
+     if(reset == 0 && nowmove == 0)
+  {
+ 
+    BallSpeedY = 2;
+    BallSpeedX = 2;
+    Xspeed = 3;
+    Yspeed = 1;
+    nowmove = 1;
+  }
+}
+
+//Стартовый экран
+
+void StartScreeen()
+{
+  if(start == 0)
+  {
+  clear();
+  PFont myFont = createFont(PFont.list () [6], fontSize);
+  textFont(myFont);
+  background(#898383);
+  text("Press the button!", 210, height /2); 
+  if(reset == 0)
+  {
+   background(#898383);
+   start = 1; 
+  }
+  }
+}
+
